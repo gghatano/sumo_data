@@ -7,7 +7,7 @@ line=$1
 ## 勝敗
 echo $line | 
 tr ',' '\n' | 
-grep -E "(W|L|R|E)" > $dir/tmp/winlose.txt.$process
+grep -E "(W|L|E)" > $dir/tmp/winlose.txt.$process
 
 ## 名前
 name=$(echo $line | 
@@ -24,5 +24,5 @@ grep -v -E "(W|L|R|E)" > $dir/tmp/opponent.txt.$process
 paste -d"," $dir/tmp/opponent.txt.$process $dir/tmp/winlose.txt.$process | 
 sed "s/^/$name,/" >> $dir/winLoseData.dat
 
-# rm $dir/tmp/*.$process
+rm $dir/tmp/*.$process
 

@@ -6,7 +6,7 @@ echo $file
 
 fileName=$(basename $file .html)
 
-./get_table.bash.tmp "htmls/"$file |
+./get_table.bash "htmls/"$file |
 ./replaceCircles.bash |
 grep -v 'align="left"' | 
 grep -v "google" | 
@@ -28,6 +28,7 @@ tr '%' '\n' |
 sed 's/　,//g' | 
 sed -e 's/^,//' -e 's/,$//' | 
 sed 's/　//g' | 
+grep -v "−" | 
 grep -v "−" | 
 grep -v -E "^ *$"  | 
 grep -v "作成" > $dir/winLoseLineData/$fileName.txt

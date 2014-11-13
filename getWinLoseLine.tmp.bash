@@ -9,7 +9,7 @@ fileName=$(basename $file .html)
 
 lines=$(cat $file | wc -l)
 
-./get_table.bash.tmp $file |
+./get_table.bash $file |
 ./replaceCircles.bash  | 
 nkf -w8 | 
 sed 's/<[^>]*>//g' | 
