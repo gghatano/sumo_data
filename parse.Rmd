@@ -1,0 +1,18 @@
+相撲のHTMLをパースして星取表を作りたい
+===
+
+```{r}
+library(dplyr)
+library(pipeR)
+library(rvest)
+
+```
+
+
+```{r}
+sumo_html = html("htmls/S7-2.html")
+
+sumo_html %>% html_node("table")
+
+```
+

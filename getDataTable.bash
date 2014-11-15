@@ -1,9 +1,12 @@
 #!/bin/bash
 
-for file in `ls ./winLoseLineData | grep tmp` 
+[ -e ./winLoseDataTable.dat ] && rm ./winLoseDataTable.dat
+
+for file in `ls ./dataCorrected | grep txt `
 do
-  cat ./winLoseLineData/$file | while read line 
+  echo $file
+  cat ./dataCorrected/$file | while read line 
     do
-      ./makeDataTable.bash $line
+      ./makeDataTable.bash $line >> ./winLoseDataTable.dat
     done
 done

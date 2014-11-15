@@ -1,0 +1,20 @@
+平成を変える
+===
+
+```{r}
+library(data.table)
+library(dplyr)
+```
+
+
+```{r}
+dat = fread("winLoseDataTable.dat.tmp", header=FALSE)
+dat 
+dat %>%
+  mutate(year = ifelse(V1=="H", V2+1989-1, V2 - 63 + 1988))
+
+
+room_year=fread("room_youth.dat.tmp")
+
+```
+

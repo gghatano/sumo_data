@@ -1,0 +1,9 @@
+<table border="0" class="hosi" width="100%">
+      <tbody>
+        <tr>
+          <td height="40">
+            <p align="left"><a href="H24-11.html">←　２４年九州へ</a>
+
+          <td>
+            <p align="right"><a href="H25-3.html">２５年春へ　→</a>
+    </table>

@@ -13,8 +13,11 @@ grep -v "google" |
 grep -v "javascript" | 
 grep -v "大相撲" | 
 grep -v "//" | 
+gsed 's/ //g' | 
+gsed 's;^\([0-9][0-9]*\)</td>$;age=\1;'|
 grep -v "href" | 
 sed -e 's/<[^>]*>//g' |
+sed 's/ //g' | 
 grep -v "幕下上位" |
 grep -v -E "^ *$"  |
 tr '[０-９]' '[0-9]' |
