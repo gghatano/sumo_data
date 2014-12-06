@@ -1,0 +1,219 @@
+勝ち負け同数で迎えた千秋楽の勝敗分布
+===
+
+## はじめに
+
+大相撲で, 7勝7敗で迎えた最終日の勝敗をチェックします. 
+
+勝率50％に近いほうがいい気がしますよね. 
+
+相撲の取り組みの決め方が不明, というのが難点ですが, もし偏りがあれば怪しい気がします. 知りませんけど. 
+
+7勝7敗出迎えた最終日に, 調子の悪い相手を当ててあげる習慣などがあるかもしれません. 
+
+## 扱うデータ
+
+昭和2年初場所から, 平成26年9月場所の幕内(十両以上?)の取り組み結果データを利用します. 
+
+データは, [大相撲星取表](http://gans01.fc2web.com)さんのWebサイトから作っています. 
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(data.table)
+library(dplyr)
+```
+
+## 力士別に勝敗列データを抽出
+
+使うデータの中身です.  
+```{r, cache=TRUE}
+dat = fread("../winLoseDataTable.dat", header=FALSE)
+dat_winlose = 
+  dat %>% select(V1,V2,V3,V6) %>% 
+  mutate(win_flg = ifelse(V6 == "W", 1, 0)) %>% 
+  mutate(lose_flg = ifelse(V6 == "L", 1, 0))  %>% 
+  select(V1, V2, V3, win_flg, lose_flg) %>% 
+  setnames(c("TOURNAMENT","CLASS", "NAME", "WIN_FLG", "LOSE_FLG"))
+
+dat_winlose %>% head
+```
+
+## 内容確認: 全勝優勝力士
+
+データの内容確認のために, とりあえず全勝優勝回数をまとめてみます.  
+
+```{r}
+dat_allwin = 
+  dat_winlose %>% 
+  group_by(TOURNAMENT, CLASS,NAME) %>% 
+  summarise_each(funs(sum)) %>% 
+  group_by(add=FALSE) %>% 
+  arrange(desc(WIN_FLG)) %>% 
+  filter(WIN_FLG==15)
+dat_allwin %>% head(20)
+```
+
+白鳳が凄いです. 全勝優勝回数ランキングを作ります. 
+```{r}
+dat_allwin %>% 
+  group_by(NAME) %>% 
+  summarise(COUNT = n()) %>% 
+  arrange(desc(COUNT))
+```
+
+貴乃花と貴ノ花で別に分けて集計されていますね. 
+
+名寄せが必要ですが, 面倒なのでやりません. 今回の集計には影響しませんし. 
+
+## 本題: 勝ち負け同数で迎えた最終日
+
+大会別に力士別勝敗集計結果と, 最終日の結果を見てみます. 
+
+最終結果が8勝7敗で最終日に勝っている人が有意に(?)多かったら, 怪しいですね. 
+
+まずは, 大会別勝敗. 
+```{r}
+## 勝敗結果集計
+dat_winlose_tournament = 
+  dat_winlose %>% 
+  group_by(TOURNAMENT,CLASS,NAME) %>% 
+  summarise_each(funs(sum))
+head(dat_winlose_tournament)
+```
+
+次に, 15日目の勝敗. 
+```{r}
+## 日付を載せる
+dat_winlose_day = 
+  dat_winlose %>% 
+  group_by(TOURNAMENT, CLASS,NAME) %>% 
+  mutate(DAY = 1:length(WIN_FLG))  
+
+## 最終日の結果
+dat_lastday_win = 
+  dat_winlose_day %>% 
+  filter(DAY==15) %>%
+  mutate(LASTDAY_WIN_FLG = ifelse(WIN_FLG == 1, 1, 0)) %>% 
+  select(TOURNAMENT:NAME,LASTDAY_WIN_FLG)
+head(dat_lastday_win)
+```
+
+2つをマージして, 7勝7敗で千秋楽を迎えた人たちの結果を見てみます. 
+```{r}
+## 大会別勝敗と最終日成績
+dat_winlose_tournament_lastday = 
+  merge(dat_winlose_tournament, dat_lastday_win, by = c("TOURNAMENT","CLASS","NAME"))  
+
+## 8勝7敗で最後に勝った人 
+num_8_7_last_win = 
+  dat_winlose_tournament_lastday %>% 
+  filter(WIN_FLG==8 & LOSE_FLG==7 & LASTDAY_WIN_FLG == 1) %>% 
+  group_by(WIN_FLG,LOSE_FLG, LASTDAY_WIN_FLG) %>% 
+  summarise(NUM = n())
+
+## 8勝7敗で最後に勝った人 
+num_8_7_last_win 
+
+## 7勝8敗で最後に負けた人
+num_7_8_last_lose = 
+  dat_winlose_tournament_lastday %>% 
+  filter(WIN_FLG==7 & LOSE_FLG==8 & LASTDAY_WIN_FLG == 0) %>% 
+  group_by(WIN_FLG,LOSE_FLG, LASTDAY_WIN_FLG) %>% 
+  summarise(NUM = n())
+
+## 7勝8敗で最後に負けた人
+num_7_8_last_lose 
+```
+
+7勝7敗で迎えた千秋楽.  
+
+勝ってめでたく勝ち越した力士は```r num_8_7_last_win$NUM```人, 
+
+敗けて残念負け越した力士は ```r num_7_8_last_lose$NUM``` 人でした. 
+
+
+## 追加: 勝敗数別に最終日の対戦成績
+
+最終日を迎えたタイミングでの勝敗数別に勝率を計算してみました. 
+@ShotaSAITOさんに言われて作ってみました. 
+<blockquote class="twitter-tweet" lang="ja"><p><a href="https://twitter.com/gg_hatano">@gg_hatano</a> 0勝14敗から14勝0敗まで調べてみて初めて何か言える気がする。例えば、0勝から14勝まで勝ち越し率が単純に増加傾向にあったら、実はメンタルじゃなくてただ強さの問題だった、とか。</p>&mdash; Shota SAITO (@ShotaSAITO) <a href="https://twitter.com/ShotaSAITO/status/541051934372003840">2014, 12月 6</a></blockquote> <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+```{r}
+library(ggplot2)
+dat_winlose_tournament_lastday %>% 
+  mutate(WIN_14 = ifelse(LASTDAY_WIN_FLG == 1, WIN_FLG -1, WIN_FLG)) %>% 
+  mutate(LOSE_14 = ifelse(LASTDAY_WIN_FLG == 0, LOSE_FLG-1 , LOSE_FLG)) %>%
+  select(TOURNAMENT,CLASS,NAME,WIN_14,LOSE_14,LASTDAY_WIN_FLG) %>% 
+  group_by(WIN_14,LOSE_14) %>% 
+  summarise(NUM = n(), WIN = sum(LASTDAY_WIN_FLG), 
+            WIN_RATE = mean(LASTDAY_WIN_FLG)) %>% 
+  filter(WIN_14 + LOSE_14 == 14) %>% 
+  mutate(WIN_LOSE = paste(WIN_14, LOSE_14, sep="-")) %>% 
+  group_by(add=FALSE) %>%
+  mutate(ORDER = 1:length(WIN_LOSE)) %>% 
+  arrange(ORDER) %>% 
+  ggplot(aes(x=reorder(WIN_LOSE, ORDER))) + 
+  geom_bar(aes(y=WIN_RATE), stat="identity") + 
+  ylim(0,1) + xlab("WIN-LOSE") + ylab("WIN-RATE")
+```
+
+左端が0勝, 右端が14勝です. 
+
+## 追加: 大関限定
+
+7勝7敗で千秋楽を迎えた大関の勝率. 後でやります. 
+```{r}
+library(stringr)
+dat_oozeki_7_7 = 
+  dat_winlose_tournament_lastday %>% 
+  filter(str_detect(CLASS, "大関")) %>% 
+  mutate(WIN_14 = ifelse(LASTDAY_WIN_FLG == 1, WIN_FLG -1, WIN_FLG)) %>% 
+  mutate(LOSE_14 = ifelse(LASTDAY_WIN_FLG == 0, LOSE_FLG-1 , LOSE_FLG)) %>%
+  select(TOURNAMENT,CLASS,NAME,WIN_14,LOSE_14,LASTDAY_WIN_FLG)  %>% 
+  filter(WIN_14 == 7 & LOSE_14 == 7) %>% 
+  group_by(WIN_14,LOSE_14) %>% 
+  summarise(NUM = n(), WIN_RATE = mean(LASTDAY_WIN_FLG))
+dat_oozeki_7_7
+```
+7勝7敗で千秋楽を迎えた大関の勝率は```r dat_oozeki_7_7$WIN_RATE ``` 
+
+普段は, 
+
+```{r}
+dat_oozeki = dat_winlose %>% 
+  filter(str_detect(CLASS, "大関")) %>% 
+  summarise(NUM = length(WIN_FLG), WIN = sum(WIN_FLG), WIN_RATE = mean(WIN_FLG))
+dat_oozeki
+```
+普段の大関の勝率は```r dat_oozeki$WIN_RATE ``` 
+
+```{r}
+dat_oozeki = dat_winlose %>% 
+  filter(str_detect(CLASS, "大関")) %>% write.csv("oozeki.csv", quote=FALSE, row.names=FALSE, col.names=FALSE )
+```
+
+なんやかんやして...
+```{r}
+dat_oozeki_mod = fread("oozeki.csv.tmp")
+dat_oozeki_mod_year = 
+  dat_oozeki_mod %>% 
+  setnames(c("EMP", "EMP_YEAR", "MONTH", "CLASS", "NAME", "WIN_FLG", "LOSE_FLG")) %>% 
+  mutate(YEAR = EMP + EMP_YEAR) %>% 
+  select(YEAR, MONTH, CLASS, NAME, WIN_FLG,LOSE_FLG)
+## 負け越したかどうか
+dat_oozeki_makekoshi = 
+  dat_oozeki_mod_year %>% 
+  group_by(YEAR,MONTH,CLASS,NAME) %>% 
+  summarise(WIN = sum(WIN_FLG), LOSE=sum(LOSE_FLG)) %>% 
+  mutate(MAKEKOSHI_FLG = (WIN<LOSE)) %>% 
+  group_by(add=FALSE) %>% 
+  arrange(NAME, YEAR,MONTH) 
+
+dat_oozeki_makekoshi %>% 
+  group_by(NAME) %>% 
+  mutate(MAEBASYO_MAKEKOSHI_FLG = c(FALSE, head(MAKEKOSHI_FLG, length(MAKEKOSHI_FLG)-1))) %>% 
+  select(YEAR,MONTH,NAME,MAEBASYO_MAKEKOSHI_FLG)
+```
+
+
+
+

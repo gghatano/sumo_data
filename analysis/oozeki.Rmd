@@ -1,0 +1,54 @@
+大関 カド番の勝率
+===
+
+大関がカド番, 7勝7敗出迎えた千秋楽の成績を見てみます. 
+
+```{r,warning=FALSE,message=FALSE}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(stringr)
+```
+
+
+使うデータの内容です. 
+```{r}
+dat = fread("./winLoseDataTable.dat.tmp", header=FALSE) %>% 
+  setnames(c("YEAR", "MONTH", "CLASS", "NAME","ROOM", "OPPONENT", "RESULT")) %>% 
+  mutate(WIN_FLG = ifelse(RESULT=="W", 1, 0)) %>% 
+  mutate(LOSE_FLG= ifelse(RESULT=="L", 1, 0)) %>% 
+  select(-ROOM, -OPPONENT,-RESULT) %>% 
+  group_by(YEAR,MONTH,CLASS,NAME) %>% 
+  mutate(DAY = 1:length(WIN_FLG)) 
+dat %>% head 
+```
+
+後で使うので, 大会の番号をつけておきます.
+```{r}
+dat_tournament = dat %>% 
+  group_by(YEAR,MONTH) %>% 
+  summarise(X=1) %>% 
+  group_by(add=FALSE) %>% 
+  mutate(TOURNAMENT = 1:length(YEAR)) %>% 
+  select(-X)
+
+dat_tournament_num = 
+  merge(dat, dat_tournament, by = c("YEAR", "MONTH"))
+dat_tournament_num
+```
+
+大関が前場所で負け越しているかどうか. 
+
+
+```{r}
+dat_tournament_num %>% 
+  group_by(CLASS,NAME,TOURNAMENT) %>% 
+  summarise(WIN = sum(WIN_FLG), LOSE = sum(LOSE_FLG)) %>% 
+  group_by(add=FALSE) %>% 
+  mutate(MAKEKOSHI_FLG = (WIN < LOSE)) %>% 
+  arrange(NAME,TOURNAMENT) %>% 
+  group_by(NAME, TOURNAMENT) %>% 
+  mutate(MAEBASYO_MAKEKOSHI_FLG = c(FALSE, head(MAKEKOSHI_FLG, length(MAKEKOSHI_FLG)-1)))
+```
+
+
